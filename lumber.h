@@ -18,6 +18,9 @@
 #define LOG_DIR "logs"
 #endif
 
+// Define executable name
+#define __progname "main"
+
 static FILE *log_file = NULL;
 
 // Initialize the log (called once on first log message)

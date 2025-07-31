@@ -2,11 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DYNAMIC_ARRAY_BASE_SIZE 10
+#define DYNAMIC_ARRAY_BASE_SIZE 1024
 #define DYNAMIC_ARRAY_TYPE char
-
-// (1/2) lumber.h initialization
-const char *__progname;
 
 typedef struct {
   int size;
@@ -40,7 +37,7 @@ dynamic_array *da_init() {
   da->size = DYNAMIC_ARRAY_BASE_SIZE;
   da->pos = '\0';
 
-  da->content = malloc(da->size * sizeof(char));
+  da->content = malloc(da->size * sizeof(DYNAMIC_ARRAY_TYPE));
 
   if (da->content == NULL) {
     log("Initialization Error: Unable to allocate memory for a new Dynamic "
@@ -226,7 +223,7 @@ void da_slice(int start, int end, dynamic_array *da) {
   }
 
   int sz = da->size;
-  char *old = malloc(sz * sizeof(char *));
+  char *old = malloc(sz * sizeof(DYNAMIC_ARRAY_TYPE *));
 
   for (int i = 0; i < sz; i++) {
     old[i] = da->content[i];
@@ -247,19 +244,4 @@ void da_append_string(char *c, dynamic_array *da) {
   for (int i = 0; i < sz; i++) {
     da_append(c[i], da);
   }
-}
-
-int main(int argc, char *argv[]) {
-  // (2/2) lumber.h initialization
-  __progname = argv[0];
-
-  dynamic_array *da = da_init();
-
-  da_append_string("this is a string\0", da);
-
-  da_print_string(da);
-
-  da_print_verbose(da);
-  da_destroy(da);
-  return 0;
 }

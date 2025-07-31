@@ -1,11 +1,11 @@
 .PHONY:
-	clean da leaks
+	clean main leaks
 
-da: da.c lumber.h
-	gcc -o da da.c
+main: main.c da.c lumber.h
+	gcc -o main main.c da.c
 
-leaks: da
-	valgrind --leak-check=full ./da
+leaks: main
+	valgrind --leak-check=full ./main
 
 clean: 
-	rm -rf ./da && rm -rf logs
+	rm -rf ./main && rm -rf logs
