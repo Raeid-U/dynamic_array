@@ -5,12 +5,6 @@
 #define DYNAMIC_ARRAY_BASE_SIZE 10
 #define DYNAMIC_ARRAY_TYPE char
 
-// TODO
-// - char da_nth_lookup(int n, dynamic_array *da) <- returns the nth character
-// in a dynamic array (use is lost on me?)
-// - void da_print_string(dynamic_array *da) <- prints a da->content as a
-// defined string
-
 // (1/2) lumber.h initialization
 const char *__progname;
 
@@ -144,6 +138,20 @@ void da_print(dynamic_array *da) {
   printf("]\n");
 }
 
+void da_print_string(dynamic_array *da) {
+  if (da_check_health(da) < 0) {
+    log("Print Error: Cannot print an unhealthy Dynamic Array\n");
+    return;
+  }
+
+  int pos = da->pos;
+  for (int i = 0; i < pos; i++) {
+    printf("%c", da->content[i]);
+  }
+
+  printf("\n");
+}
+
 void da_resize(dynamic_array *da) {
   char *content = da->content;
 
@@ -249,7 +257,7 @@ int main(int argc, char *argv[]) {
 
   da_append_string("this is a string\0", da);
 
-  printf("%c", da_nth_lookup(100, da));
+  da_print_string(da);
 
   da_print_verbose(da);
   da_destroy(da);
