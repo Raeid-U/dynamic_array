@@ -1,92 +1,131 @@
 #ifndef LUMBER_H
 #define LUMBER_H
 
-#include <errno.h>
+// "-DLOGGING" to init Lumber or omit to not log
+#ifndef LOGGING
+#define LOGGING 0
+#endif
+
+// " -DPROGNAME=\"...\" " to declare the Programe Name
+#ifndef PROGNAME
+#define PROGNAME "main"
+#endif
+
+// " -DLOG_DIR=\"...\" " to declare the Log Directory
+#ifndef LOG_DIR
+#define LOG_DIR "logs"
+#endif
+
+// " -DFORMAT=\"...\" " to declare the format option for logging
+#ifndef FORMAT
+#define FORMAT 0
+#endif
+
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+
+static const char *win_basename(const char *path) {
+  const char *p = strrchr(path, '\\');
+  if (!p) {
+    p = strrchr(path, '/');
+  }
+
+  return p ? p + 1 : path;
+}
+#define basename(x) win_basename(x)
+#else
 #include <libgen.h>
+#include <sys/stat.h>
+#endif
+
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
 
-// Change this if you ever want to write to another directory
-#ifndef LOG_DIR
-#define LOG_DIR "logs"
-#endif
-
-// Define executable name
-#define __progname "main"
-
 static FILE *log_file = NULL;
 
-// Initialize the log (called once on first log message)
 static void init_log(const char *exe_path) {
-  if (log_file)
-    return;
-
-  // 1) Make sure logs/ exists (ignore if it already does)
-  if (mkdir(LOG_DIR, 0755) < 0 && errno != EEXIST) {
-    perror("mkdir log dir");
+  if (log_file) {
     return;
   }
 
-  // 2) Only use the basename of the executable
+  if (mkdir(LOG_DIR, 0755) < 0 && errno != EEXIST) {
+    fprintf(stderr,
+            "[lumber.h] ERROR: Unable to create/access Log Directory,\n"
+            "[lumber.h]     Attempted to create at: %s/",
+            LOG_DIR);
+    return;
+  }
+
   const char *exe = basename((char *)exe_path);
 
-  // 3) Build a full path under logs/
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   char fname[PATH_MAX];
+
   snprintf(fname, sizeof(fname),
            LOG_DIR "/%04d%02d%02d_%02d%02d%02d_%s_log.txt", tm.tm_year + 1900,
            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, exe);
 
-  // 4) Try opening it for append
   log_file = fopen(fname, "a");
+
   if (!log_file) {
-    fprintf(stderr, "Could not open '%s': %s\n", fname, strerror(errno));
+    fprintf(stderr, "[lumber.h] ERROR: Could not open '%s': %s\n", fname,
+            strerror(errno));
   }
 }
 
-// Append a timestamped message
 static void log_msg(const char *exe_name, const char *msg) {
-  if (!log_file)
+  if (!LOGGING) {
+    return;
+  }
+
+  if (!log_file) {
     init_log(exe_name);
+  }
+
   if (log_file) {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
 
-    // OLD LOG FORMAT [timestamp] msg \n
-    // fprintf(log_file, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n", tm.tm_year +
-    // 1900,
-    //      tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, msg);
+    switch (FORMAT) {
+    case 0:
+      fprintf(log_file, "[%04d-%02d-%02d %02d:%02d:%02d] %s", tm.tm_year + 1900,
+              tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, msg);
+      break;
+    case 1:
+      fprintf(log_file, "%s", msg);
+      break;
+    default:
+      fprintf(stderr,
+              "[lumber.h] ERROR: Unknown Format %d\n"
+              "[lumber.h]     Attempted to Log: %s",
+              FORMAT, msg);
+      fflush(stderr);
+      return;
+      break;
+    }
 
-    fprintf(log_file, "%s", msg);
     fflush(log_file);
   }
 }
 
-// Convenience macro: pass argv[0] or your own executable name
-#define log(s) log_msg(__progname, (s))
+#define log(s) log_msg(PROGNAME, (s))
 
-// Convenience macro: standin for log with format specifiers
 #define logf(fmt, ...)                                                         \
   do {                                                                         \
-    char _logbuf[512];                                                         \
-    int _ = snprintf(_logbuf, sizeof _logbuf, fmt, __VA_ARGS__);               \
-    (void)_; /* silence unused‐result warning */                               \
+    char _logbuf[PATH_MAX];                                                    \
+    int _ = snprintf(_logbuf, sizeof(_logbuf), fmt, __VA_ARGS__);              \
+    (void)_;                                                                   \
     log(_logbuf);                                                              \
   } while (0)
 
-// You’ll need to extern or define __progname yourself:
-// e.g. in your main.c:
-//   const char *__progname;
-//   int main(int argc, char **argv) {
-//     __progname = argv[0];
-//     …
-//   }
 #endif

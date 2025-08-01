@@ -1,15 +1,10 @@
+#include "da.h"
 #include "lumber.h"
 #include <stdlib.h>
 #include <string.h>
 
-#define DYNAMIC_ARRAY_BASE_SIZE 1024
+#define DYNAMIC_ARRAY_BASE_SIZE 10
 #define DYNAMIC_ARRAY_TYPE char
-
-typedef struct {
-  int size;
-  int pos;
-  char *content;
-} dynamic_array;
 
 void da_zero(dynamic_array *da) {
   if (da == NULL) {
@@ -186,6 +181,10 @@ void da_pop(dynamic_array *da) {
   da->content[da->pos] = 0;
 
   --da->pos;
+
+  if (da->pos < da->size / 2) {
+    da_optimize(da);
+  }
 }
 
 char da_nth_lookup(int index, dynamic_array *da) {
@@ -244,4 +243,21 @@ void da_append_string(char *c, dynamic_array *da) {
   for (int i = 0; i < sz; i++) {
     da_append(c[i], da);
   }
+}
+
+void da_optimize(dynamic_array *da) {
+  char *content = da->content;
+  int sz = da->size;
+  int pos = da->pos;
+
+  da->content = malloc(DYNAMIC_ARRAY_BASE_SIZE * sizeof(DYNAMIC_ARRAY_TYPE));
+  da->size = DYNAMIC_ARRAY_BASE_SIZE;
+  da->pos = 0;
+
+  da_zero(da);
+  for (int i = 0; i < pos; i++) {
+    da_append(content[i], da);
+  }
+
+  free(content);
 }

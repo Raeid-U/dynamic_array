@@ -29,3 +29,5 @@ char da_nth_lookup(int index, dynamic_array *da);
 void da_slice(int start, int end, dynamic_array *da);
 
 void da_append_string(char *c, dynamic_array *da);
+
+void da_optimize(dynamic_array *da);

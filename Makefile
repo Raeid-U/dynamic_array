@@ -2,7 +2,7 @@
 	clean main leaks
 
 main: main.c da.c lumber.h
-	gcc -o main main.c da.c
+	gcc -Wall -Wextra -DLOGGING main.c da.c -o main 
 
 leaks: main
 	valgrind --leak-check=full ./main
